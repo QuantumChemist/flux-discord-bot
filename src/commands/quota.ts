@@ -1,38 +1,18 @@
 import { SlashCommandBuilder, CommandInteraction } from "discord.js";
-import fetch from "node-fetch";
-
-const API_URL = process.env.API_URL;
-const API_KEY = process.env.API_KEY;
+import { WeightsApi } from "../libs/weights-api";
 
 const command = {
   data: new SlashCommandBuilder()
     .setName("quota")
     .setDescription("Fetches the quota information."),
 
-  async execute(interaction: CommandInteraction) {
+  async execute(interaction: CommandInteraction, api: WeightsApi) {
     try {
       await interaction.deferReply({ ephemeral: true });
 
-      const headers: { [key: string]: string } = {};
-      if (API_KEY) {
-        headers["x-api-key"] = API_KEY;
-      }
-
-      const response = await fetch(`${API_URL}/quota`, {
-        headers: headers,
-        timeout: 5000, // 5 seconds timeout
-      });
-
-      if (!response.ok) {
-        console.error(`HTTP error! status: ${response.status}`);
-        await interaction.editReply({
-          content: `Error: HTTP ${response.status}`,
-        });
-        return;
-      }
-
-      const quota = await response.text();
-      await interaction.editReply({ content: quota });
+      const quotasText = await api.getQuota();
+      const quotas = JSON.parse(quotasText);
+      await interaction.editReply({ content: quotas.usage.DAILY_IMAGE_CREATIONS + " of " + quotas.limits.DAILY_IMAGE_CREATIONS });
     } catch (error) {
       console.error("Quota fetch error:", error);
       await interaction.editReply({
